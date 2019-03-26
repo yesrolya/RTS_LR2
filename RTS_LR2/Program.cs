@@ -33,6 +33,7 @@ namespace RTS_LR2
             CreateReachabilityMatrix();
             CreatePriorityList();
             CreateDiagramm();
+            DrawDiagram();
         }
 
         void InitSchedule()
@@ -46,14 +47,26 @@ namespace RTS_LR2
         private void CreateReachabilityMatrix()
         {
             for (int i = tasks - 1; i >= 0; i--)
-                for (int j = 0; j < tasks; j++)
+                for (int j = tasks - 1; j >= 0; j--)
                     if (B[i, j] == 1)
-                    {
                         C[i, j] = 1;
+
+            for (int i = tasks - 1; i >= 0; i--)
+                for (int j = tasks - 1; j >= 0; j--)
+                    if (C[i, j] == 1)
+                    {
                         for (int k = 0; k < tasks; k++)
-                            if (B[j, k] == 1)
-                                C[i, k] = 1;
+                            if (C[k, i] == 1)
+                                C[k, j] = 1;
                     }
+            Console.WriteLine("Матрица достижимости: ");
+            for (int i = 0; i < tasks; i++)
+            {
+                for (int j = 0; j < tasks; j++)
+                    Console.Write(C[i, j] + " ");
+                Console.WriteLine();
+            }
+             
         }
         //создание списка задач в сооветствии с их приоритетом выполнения
         private void CreatePriorityList()
@@ -62,26 +75,23 @@ namespace RTS_LR2
             int[] pr2 = CountSecondCriterion();
 
             int temp1 = pr1.Max() + 10;
-
+            List<int> lst = new List<int>();
+            Console.WriteLine("Список значений критериев для вычисления приоритетов: ");
             for (int i = 0; i < tasks; i++)
             {
-                List<string> lst = new List<string>();
+                Console.WriteLine(i + 1 + ": " + pr1[i] + " " + pr2[i]);
+                lst.Add((pr1[i]*10000) + (10000 - pr2[i]*100) + i);
+            }
+            
+            lst.Sort();
 
-                int minValue = pr1.Min();
-                int minIndex;
-
-                while ((minIndex = pr1.ToList().IndexOf(minValue)) != -1)
-                {
-                    lst.Add(pr2[minIndex] + "+" + minIndex);
-                    pr1[minIndex] = temp1;
-                }
-
-                lst.Sort();
-                lst.Reverse();
-                foreach (var l in lst)
-                {
-                    L[i++] = int.Parse(l.Split('+')[1]);
-                }
+            Console.WriteLine("Список задач по приоритетам: ");
+            foreach (var l in lst) Console.Write((l + 1)%100 + " ");
+            Console.WriteLine();
+            int k = 0;
+            foreach (var l in lst)
+            {
+                L[k++] = l%100;
             }
         }
         //создание списка значений для критерия первого приоритета
@@ -98,20 +108,15 @@ namespace RTS_LR2
         //подсчет максимального количества вершин от заданной до начальной
         private int CountVertexToStart(int vertex)
         {
-            if (vertex == 0) return 1;
-
+            if (vertex == 0) return 0;
             int maxVal = 0;
             for (int i = 0; i < tasks; i++)
-            {
                 if (B[i, vertex] == 1)
                 {
                     int temp = CountVertexToStart(i);
                     if (temp > maxVal)
-                    {
                         maxVal = temp;
-                    }
                 }
-            }
             return maxVal + 1;
         }
 
@@ -120,7 +125,7 @@ namespace RTS_LR2
         private int[] CountSecondCriterion()
         {
             int[] result = new int[tasks];
-            for (int i = 1; i < tasks; i++)
+            for (int i = 0; i < tasks; i++)
                 result[i] = CountPathToEnd(i);
             return result;
         }
@@ -133,7 +138,7 @@ namespace RTS_LR2
             int maxVal = 0;
             for (int i = 0; i < tasks; i++)
             {
-                if (B[i, vertex] == 1)
+                if (B[vertex, i] == 1)
                 {
                     int temp = CountPathToEnd(i);
                     if (temp > maxVal)
@@ -185,6 +190,17 @@ namespace RTS_LR2
                 if (setIt) j++;    
                 time++;
 
+            }
+        }
+
+        private void DrawDiagram()
+        {
+            for (int i = 0; i < processes; i++)
+            {
+                string str = i + ": ";
+                foreach (var a in A[i])
+                    str += (a == -1 ? '-' : a);
+                Console.WriteLine(str);
             }
         }
         
@@ -268,16 +284,8 @@ namespace RTS_LR2
                         {0,0,0,0,0,0,0,0,0,0,1},
                         {0,0,0,0,0,0,0,0,0,0,1},
                         {0,0,0,0,0,0,0,0,0,0,0}};
-            //матрица достижимости
-            int[,] C = new int[n,n];
-            //список задач в соответствии с приоритетом
-            int[] L = new int[n];
-            int[] priority1 = new int[n];
-            int[] priority2 = new int[n];
 
-            priority1[0] = 0;
-            
-            
+            Schedule sc = new Schedule(m, n, B, T);
             Console.ReadKey();
         }
     }
