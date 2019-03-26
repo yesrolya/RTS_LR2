@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RTS_LR2
 {
@@ -14,8 +12,10 @@ namespace RTS_LR2
         int[,] C;
         int[] time_vector;
         int[] L;
+        List<int>[] A;
+        int sum_time;
 
-        public Schedule (int processes, int tasks, int[,] B, int[] time_vector)
+        public Schedule(int processes, int tasks, int[,] B, int[] time_vector)
         {
             this.processes = processes;
             this.tasks = tasks;
@@ -29,16 +29,25 @@ namespace RTS_LR2
             }
             L = new int[tasks];
             C = new int[tasks, tasks];
+            InitSchedule();
             CreateReachabilityMatrix();
             CreatePriorityList();
             CreateDiagramm();
         }
+
+        void InitSchedule()
+        {
+            A = new List<int>[processes];
+            for (int i = 0; i < processes; i++)
+                A[i] = new List<int>();
+        }
+
         //заполнение матрицы достижимости
-        private void CreateReachabilityMatrix ()
+        private void CreateReachabilityMatrix()
         {
             for (int i = tasks - 1; i >= 0; i--)
                 for (int j = 0; j < tasks; j++)
-                    if (B[i,j] == 1)
+                    if (B[i, j] == 1)
                     {
                         C[i, j] = 1;
                         for (int k = 0; k < tasks; k++)
@@ -94,7 +103,7 @@ namespace RTS_LR2
             int maxVal = 0;
             for (int i = 0; i < tasks; i++)
             {
-                if (B[i,vertex] == 1)
+                if (B[i, vertex] == 1)
                 {
                     int temp = CountVertexToStart(i);
                     if (temp > maxVal)
@@ -136,9 +145,98 @@ namespace RTS_LR2
             return maxVal + time_vector[vertex];
         }
 
+        
+
         private void CreateDiagramm()
         {
+            List<Zadacha> zadachi = new List<Zadacha>(); //задачи на выполнении
+            List<int> completed = new List<int>(); //завершенные задачи
+            int time = 1;
+            int j = 0;
+            while (j < tasks)
+            {
+                int tempTaskNum = -1;
+                if (CouldBeLoaded(L[j], completed))
+                    tempTaskNum = L[j];
+                bool setIt = false;
+                for (int i = 0; i < processes; i++)
+                {
+                    if (A[i].Count() < time)
+                    {
+                        SetToSchedule(i, tempTaskNum);
+                        if (tempTaskNum != -1)
+                        {
+                            setIt = true;
+                            zadachi.Add(new Zadacha(tempTaskNum, time_vector[tempTaskNum]));
+                            tempTaskNum = -1;
+                        }
+                    }
+                }
 
+                for (int k = zadachi.Count() - 1; k >= 0; k--)
+                {
+                    zadachi[k] = zadachi[k] + 1;
+                    if (zadachi[k].Completed())
+                    {
+                        completed.Add(zadachi[k].number);
+                        zadachi.RemoveAt(k);
+                    }
+                }
+                if (setIt) j++;    
+                time++;
+
+            }
+        }
+        
+        private void SetToSchedule(int process_number, int task_number)
+        {
+            //ставит в вектор процесса задачу, согласно ее продолжительности
+            //-1 - отсутствие задачи в расписании
+            int time = task_number == -1 ? 1 : time_vector[task_number];
+            for (int i = 0; i < time; i++)
+                A[process_number].Add(task_number);
+        }
+
+
+        private bool CouldBeLoaded (int current, List<int> completed)
+        {
+            int counter = 0;
+            for (int i = 0; i < tasks; i++)
+                if (B[i, current] == 1) counter++;
+            if (counter == 0) return true;
+            foreach (var c in completed)
+                if (B[c, current] == 1)
+                    return true;
+            return false;
+        }
+        
+    }
+
+    public class Zadacha
+    {
+        public int number;
+        public int duration;
+
+        public Zadacha (int number, int duration)
+        {
+            this.number = number;
+            this.duration = duration;
+        }
+
+        public static Zadacha operator + (Zadacha z1, int num)
+        {
+            return new Zadacha(z1.number, z1.duration + num);
+        }
+
+        public static Zadacha operator -(Zadacha z1, int num)
+        {
+            return new Zadacha(z1.number, z1.duration - num);
+        }
+
+        public bool Completed ()
+        {
+            if (duration == 0) return true;
+            else return false;
         }
     }
 
@@ -159,17 +257,17 @@ namespace RTS_LR2
                         //вектор времен
             int[] T = { 3, 2, 2, 3, 4, 2, 3, 4, 2, 3, 4 };
             //матрица смежности
-            int[,] B = { {0,1,1,1,0,0,0,0,0,0,0},
-                     {0,0,0,0,0,1,0,0,0,0,0},
-                     {0,0,0,0,1,0,0,0,0,0,0},
-                     {0,0,0,0,0,1,0,1,0,0,0},
-                     {0,0,0,0,0,0,1,0,0,0,0},
-                     {0,0,0,0,0,0,0,0,1,0,0},
-                     {0,0,0,0,0,0,0,1,0,0,0},
-                     {0,0,0,0,0,0,0,0,1,1,0},
-                     {0,0,0,0,0,0,0,0,0,0,1},
-                     {0,0,0,0,0,0,0,0,0,0,1},
-                     {0,0,0,0,0,0,0,0,0,0,0}};
+            int[,] B = {{0,1,1,1,0,0,0,0,0,0,0},
+                        {0,0,0,0,0,1,0,0,0,0,0},
+                        {0,0,0,0,1,0,0,0,0,0,0},
+                        {0,0,0,0,0,1,0,1,0,0,0},
+                        {0,0,0,0,0,0,1,0,0,0,0},
+                        {0,0,0,0,0,0,0,0,1,0,0},
+                        {0,0,0,0,0,0,0,1,0,0,0},
+                        {0,0,0,0,0,0,0,0,1,1,0},
+                        {0,0,0,0,0,0,0,0,0,0,1},
+                        {0,0,0,0,0,0,0,0,0,0,1},
+                        {0,0,0,0,0,0,0,0,0,0,0}};
             //матрица достижимости
             int[,] C = new int[n,n];
             //список задач в соответствии с приоритетом
@@ -178,11 +276,7 @@ namespace RTS_LR2
             int[] priority2 = new int[n];
 
             priority1[0] = 0;
-
-            for(int j = 1; j < n; j++)
-            {
-
-            }
+            
             
             Console.ReadKey();
         }
