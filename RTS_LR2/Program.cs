@@ -58,7 +58,112 @@ namespace RTS_LR2
                 Console.WriteLine();
             }
         }
+        #region FOR_MEOW <3
         //создание списка задач в сооветствии с их приоритетом выполнения
+        private void CreatePriorityList()
+        {
+            int[] pr1 = CountFirstCriterion();
+            int[] pr2 = CountSecondCriterion();
+            int temp1 = pr1.Max() + 10;
+            List<int> lst = new List<int>();
+            Console.WriteLine("Список значений критериев для вычисления приоритетов: ");
+            for (int i = 0; i < tasks; i++)
+            {
+                Console.WriteLine(i + 1 + ": " + pr1[i] + " " + pr2[i]);
+                lst.Add((100 - pr1[i]) * 10000 + (pr2[i] * 100) + i);
+            }
+            lst.Sort();
+            int k = 0;
+            foreach (var l in lst)
+                L[k++] = l % 100;
+
+            Console.WriteLine("Список задач отсортированный по приоритетам: ");
+            foreach (var l in L) Console.Write((l + 1) + " ");
+            Console.WriteLine();
+
+            //в этой части кода происходит магия
+            //крч приоритеты - одно, а вот некоторые задачи не могут запуститься 
+            //без выполнения другой, например 8 не может выполниться после 2, как это в списке получается
+            //поэтому надо поставить 8 задачу после к-л задачи, после которой она может выполниться (только 5, в данном случае)
+            //вся магия СОБСНА
+            int h = 1;
+            while (h < tasks - 1)
+            {
+                if (CouldRun(h))
+                    h++;
+                else
+                {
+                    int i = h;
+                    while (!CouldRun(i))
+                    {
+                        var temp = L[i];
+                        L[i] = L[i + 1];
+                        L[i + 1] = temp;
+                        i++;
+                    }
+                }
+
+            }
+
+
+            Console.WriteLine("Список задач по приоритетам в порядке их выполнения: ");
+            foreach (var l in L) Console.Write((l + 1) + " ");
+            Console.WriteLine();
+        }
+
+        private bool CouldRun(int index)
+        {
+            for (int i = 0; i < index; i++)
+                if (B[L[i], L[index]] == 1)
+                    return true;
+            return false;
+        }
+
+        private int[] CountSecondCriterion()
+        {
+            //индекс элемента в массиве соответствует номеру вершины
+            //значение - максимальное кол-во вершин от 0 до данной
+            int[] result = new int[tasks];
+            for (int i = 1; i < tasks; i++)
+                result[i] = CountVertexToStart(i);
+            return result;
+        }
+        //подсчет максимального количества вершин от заданной до начальной
+        private int CountVertexToStart(int vertex)
+        {
+            if (vertex == 0) return 0;
+            int maxVal = 0;
+            for (int i = 0; i < tasks; i++)
+                if (B[i, vertex] == 1)
+                {
+                    int temp = CountVertexToStart(i);
+                    if (temp > maxVal)
+                        maxVal = temp;
+                }
+            return maxVal + 1;
+        }
+        //связности на глубину 1
+        private int[] CountFirstCriterion()
+        {
+            int[] result = new int[tasks];
+            for (int i = 0; i < tasks; i++)
+                result[i] = CountQuantity(i);
+            return result;
+        }
+        //связности на глубину 1, то есть, количество преемников вершины
+        private int CountQuantity(int vertex)
+        {
+            int counter = 0;
+            for (int i = 0; i < tasks; i++)
+                if (B[vertex, i] == 1)
+                    counter++;
+            return counter;
+        }
+        #endregion
+
+        #region FOR_ME
+        /*
+         * //создание списка задач в сооветствии с их приоритетом выполнения
         private void CreatePriorityList()
         {
             int[] pr1 = CountFirstCriterion();
@@ -127,6 +232,9 @@ namespace RTS_LR2
                 }
             return maxVal + time_vector[vertex];
         }
+        */
+        #endregion
+
         private void CreateDiagramm()
         {
             List<Zadacha> zadachi = new List<Zadacha>(); //задачи на выполнении
@@ -235,15 +343,15 @@ namespace RTS_LR2
             //наименования переменных соответствуют методичке
             int m = 3; //количество процессоров
             int n = 11; //количество задач
-            int[] T = { 3, 2, 2, 3, 4, 2, 3, 4, 2, 3, 4 }; //вектор времен
+            int[] T = { 3, 2, 3, 2, 2, 4, 3, 4, 3, 2, 4 }; //вектор времен
             //матрица смежности
             int[,] B = {{0,1,1,1,0,0,0,0,0,0,0},
+                        {0,0,0,0,1,0,1,0,0,0,0},
                         {0,0,0,0,0,1,0,0,0,0,0},
-                        {0,0,0,0,1,0,0,0,0,0,0},
-                        {0,0,0,0,0,1,0,1,0,0,0},
                         {0,0,0,0,0,0,1,0,0,0,0},
-                        {0,0,0,0,0,0,0,0,1,0,0},
                         {0,0,0,0,0,0,0,1,0,0,0},
+                        {0,0,0,0,0,0,0,0,1,0,0},
+                        {0,0,0,0,0,0,0,0,0,1,0},
                         {0,0,0,0,0,0,0,0,1,1,0},
                         {0,0,0,0,0,0,0,0,0,0,1},
                         {0,0,0,0,0,0,0,0,0,0,1},
